@@ -174,7 +174,7 @@
           const data = await response.json().catch(() => ({}));
           status.className = 'form__status is-error';
           status.textContent = (data.errors && data.errors.map(e => e.message).join(', '))
-            || "L'envoi a échoué. Merci de réessayer ou de nous appeler au 01 47 90 68 61.";
+            || "L'envoi a échoué. Merci de réessayer ou de nous appeler au 01 89 70 68 60 .";
         }
       } catch (err) {
         status.className = 'form__status is-error';
