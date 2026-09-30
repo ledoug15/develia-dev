@@ -168,10 +168,16 @@ button{ font:inherit; color:inherit; }
   padding:calc(var(--header-h) + 3rem) 0 4rem;
   background:#070707;
   overflow:hidden;
-  /* réglages du visuel : largeur du panneau et cadrage de la photo */
-  --hero-media-w:58%;
-  --hero-focus:50% 50%;
+  /* --- réglages du visuel --- */
+  --hero-media-w:72%;       /* largeur occupée par la photo (le reste est noir) */
+  --hero-focus:52% 50%;     /* cadrage de la photo */
+  --hero-fondu:64%;         /* largeur du fondu noir sur le bord gauche de la photo */
+  --hero-blur:16px;         /* intensité du flou */
+  --hero-voile:.42;         /* assombrissement de la zone floutée */
+  --hero-blur-debut:6%;     /* le flou démarre ici (bord du texte) */
+  --hero-blur-fin:50%;      /* et a totalement disparu ici */
 }
+/* la photo est calée à droite : elle est réduite, jamais agrandie */
 .hero__media{
   position:absolute; top:0; right:0; bottom:0; left:auto;
   width:var(--hero-media-w);
@@ -180,14 +186,41 @@ button{ font:inherit; color:inherit; }
   width:100%; height:100%;
   object-fit:cover; object-position:var(--hero-focus);
 }
-/* fondu du visuel vers le noir, à gauche et sur les bords */
+/* fondu noir sur le bord gauche de la photo + léger fondu haut/bas */
 .hero__media::after{
   content:""; position:absolute; inset:0;
   background:
-    linear-gradient(90deg, #070707 0%, rgba(7,7,7,.94) 16%, rgba(7,7,7,.62) 40%, rgba(7,7,7,.15) 70%, rgba(7,7,7,.4) 100%),
-    linear-gradient(to bottom, rgba(7,7,7,.55), rgba(7,7,7,0) 28%, rgba(7,7,7,0) 65%, rgba(7,7,7,.7));
+    linear-gradient(90deg,
+      #070707 0%,
+      rgba(7,7,7,.86) calc(var(--hero-fondu) * .32),
+      rgba(7,7,7,.52) calc(var(--hero-fondu) * .58),
+      rgba(7,7,7,.20) calc(var(--hero-fondu) * .80),
+      rgba(7,7,7,0)   var(--hero-fondu)),
+    linear-gradient(to bottom, rgba(7,7,7,.5), rgba(7,7,7,0) 26%, rgba(7,7,7,0) 62%, rgba(7,7,7,.72));
 }
-.hero__inner{ position:relative; }
+/* voile flouté : commence au texte du titre, s'efface avant la polisseuse */
+.hero__veil{
+  position:absolute; inset:0; z-index:1; pointer-events:none;
+  backdrop-filter:blur(var(--hero-blur)) saturate(.92);
+  -webkit-backdrop-filter:blur(var(--hero-blur)) saturate(.92);
+  background:linear-gradient(90deg,
+    rgba(7,7,7,var(--hero-voile)) 0%,
+    rgba(7,7,7,calc(var(--hero-voile) * .7)) 55%,
+    rgba(7,7,7,0) 100%);
+  mask-image:linear-gradient(90deg,
+    transparent 0, #000 var(--hero-blur-debut),
+    #000 34%, rgba(0,0,0,.4) 42%, transparent var(--hero-blur-fin));
+  -webkit-mask-image:linear-gradient(90deg,
+    transparent 0, #000 var(--hero-blur-debut),
+    #000 34%, rgba(0,0,0,.4) 42%, transparent var(--hero-blur-fin));
+}
+/* repli si backdrop-filter n'est pas supporté (anciens navigateurs) */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .hero__veil{
+    background:linear-gradient(90deg, rgba(7,7,7,.88) 0%, rgba(7,7,7,.72) 38%, rgba(7,7,7,0) 100%);
+  }
+}
+.hero__inner{ position:relative; z-index:2; }
 .hero__inner > *{ max-width:34rem; }
 .hero__title{
   font-size:clamp(2.3rem,5.4vw,3.4rem); text-transform:uppercase; letter-spacing:.01em;
@@ -265,6 +298,37 @@ button{ font:inherit; color:inherit; }
 .link-arrow:hover .ico{ transform:translateX(5px); }
 
 .works__grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:1.4rem; }
+
+/* --- Grille Instagram --- */
+.insta__grid{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1.1rem;
+}
+.insta{
+  position:relative; display:block; aspect-ratio:1/1; overflow:hidden;
+  border:1px solid var(--bordure-2); border-radius:var(--rayon);
+  background:var(--noir-4);
+}
+.insta img{
+  width:100%; height:100%; object-fit:cover;
+  transition:transform .5s cubic-bezier(.4,.1,.2,1), filter var(--transi);
+}
+.insta:hover img, .insta:focus-visible img{ transform:scale(1.06); filter:brightness(.55); }
+.insta__overlay{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:.7rem;
+  color:#fff; opacity:0; transition:opacity var(--transi);
+  background:linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,.1));
+}
+.insta:hover .insta__overlay, .insta:focus-visible .insta__overlay{ opacity:1; }
+.insta__ico{
+  width:34px; height:34px; fill:none; stroke:currentColor; stroke-width:1.5;
+  stroke-linecap:round; stroke-linejoin:round; color:var(--or);
+}
+.insta__tag{
+  font-family:var(--font-titre); font-size:.72rem; letter-spacing:.16em;
+  text-transform:uppercase;
+}
+.works__cta{ text-align:center; margin:2.8rem 0 0; }
 
 /* --- Comparateur avant / après --- */
 .ba{
@@ -485,14 +549,28 @@ button{ font:inherit; color:inherit; }
   .stats{ grid-template-columns:repeat(2,1fr); gap:2rem 0; }
   .stat:nth-child(3){ border-left:0; }
 
-  .hero{ --hero-media-w:100%; min-height:auto; padding-top:calc(var(--header-h) + 2.5rem); }
+  /* en tablette/mobile le texte passe sur la photo : voile plus large et plus dense */
+  .hero{
+    min-height:auto; padding-top:calc(var(--header-h) + 2.5rem);
+    --hero-media-w:100%; --hero-voile:.62; --hero-blur:14px; --hero-fondu:100%;
+  }
   .hero__media::after{
-    background:
-      linear-gradient(90deg, rgba(7,7,7,.95) 0%, rgba(7,7,7,.75) 45%, rgba(7,7,7,.55) 100%),
-      linear-gradient(to bottom, rgba(7,7,7,.75), rgba(7,7,7,.35) 40%, rgba(7,7,7,.9));
+    background:linear-gradient(to bottom, rgba(7,7,7,.55), rgba(7,7,7,.15) 40%, rgba(7,7,7,.85));
+  }
+  .hero__veil{
+    mask-image:linear-gradient(to bottom, #000 0%, #000 62%, rgba(0,0,0,.45) 100%);
+    -webkit-mask-image:linear-gradient(to bottom, #000 0%, #000 62%, rgba(0,0,0,.45) 100%);
+    background:linear-gradient(to bottom,
+      rgba(7,7,7,var(--hero-voile)) 0%,
+      rgba(7,7,7,calc(var(--hero-voile) * .85)) 70%,
+      rgba(7,7,7,.4) 100%);
   }
   .video__grid, .contact__grid{ grid-template-columns:1fr; gap:2.5rem; }
   .cta__inner{ flex-direction:column; align-items:flex-start; }
+}
+
+@media (max-width:760px){
+  .insta__grid{ grid-template-columns:repeat(2,1fr); gap:.8rem; }
 }
 
 @media (max-width:640px){
